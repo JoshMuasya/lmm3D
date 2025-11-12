@@ -73,6 +73,7 @@ export interface WallType {
         depth?: number,
     ];
     color: string;
+    isMobile?: boolean
 }
 
 export interface DoorType {

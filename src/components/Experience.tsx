@@ -16,16 +16,38 @@ import { useTexture } from "@react-three/drei";
 import { Text3D, Center } from "@react-three/drei";
 
 
-const Wall = ({ position, args, color }: WallType) => {
+const useIsMobile = (breakpoint = 768) => {
+    const [isMobile, setIsMobile] = useState(false);
+
+    useEffect(() => {
+        // Set initial value after mount to ensure window is defined
+        const checkMobile = () => window.innerWidth < breakpoint;
+        setIsMobile(checkMobile());
+
+        const handleResize = () => {
+            setIsMobile(checkMobile());
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [breakpoint]);
+
+    return isMobile;
+};
+
+const Wall = ({ position, args, color, isMobile }: WallType) => {
     return (
-        <mesh position={position} receiveShadow castShadow>
+        <mesh
+            position={position}
+            receiveShadow={!isMobile}
+            castShadow={!isMobile}
+        >
             <boxGeometry args={args} />
             <meshStandardMaterial color={color} side={THREE.DoubleSide} />
         </mesh>
     )
 }
 
-const WallLight = ({ position, target }: WallLightType) => {
+const WallLight = ({ position, target, isMobile }: WallLightType & { isMobile: boolean }) => {
     const lightRef = useRef<THREE.SpotLight>(null)
     const targetRef = useRef<THREE.Object3D>(null)
 
@@ -45,14 +67,14 @@ const WallLight = ({ position, target }: WallLightType) => {
                 intensity={4}        // stronger
                 distance={6}         // limit range
                 decay={2}            // natural falloff
-                castShadow
+                castShadow={!isMobile}
             />
             <object3D ref={targetRef} position={target} />
         </>
     )
 }
 
-const UpwardLight = ({ position }: { position: [number, number, number] }) => {
+const UpwardLight = ({ position, isMobile }: { position: [number, number, number], isMobile: boolean }) => {
     const lightRef = useRef<THREE.SpotLight>(null);
     const targetRef = useRef<THREE.Object3D>(null);
 
@@ -73,7 +95,7 @@ const UpwardLight = ({ position }: { position: [number, number, number] }) => {
                 distance={2}
                 decay={2.5}
                 color="#ffd8a8"         // warm soft tone
-                castShadow
+                castShadow={!isMobile}
             />
             <object3D ref={targetRef} position={[position[0], position[1] + 1.2, position[2]]} />
 
@@ -135,7 +157,7 @@ const Door = ({ onClick }: DoorType) => {
 }
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
-const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Function }) => {
+const Room = ({ onDoorClick, onPictureClick, isMobile }: RoomType & { onPictureClick?: Function, isMobile: boolean }) => {
     const roomWidth = 15
     const roomDepth = 20
     const roomHeight = 7
@@ -154,22 +176,32 @@ const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Fun
     return (
         <group>
             {/* Floor */}
-            <Wall position={[0, -0.05, 0]} args={[roomWidth, 0.1, roomDepth]} color="grey" />
+            <Wall
+                position={[0, -0.05, 0]}
+                args={[roomWidth, 0.1, roomDepth]}
+                color="grey"
+                isMobile={isMobile}
+            />
 
             {/* Roof */}
-            <Wall position={[0, roomHeight + 0.05, 0]} args={[roomWidth, 0.1, roomDepth]} color="#4A0E0E" />
+            <Wall
+                position={[0, roomHeight + 0.05, 0]}
+                args={[roomWidth, 0.1, roomDepth]}
+                color="#4A0E0E"
+                isMobile={isMobile}
+            />
 
             {/* Walls (auto-generated from wallSections data) */}
             {wallSections.map((section) => (
                 <group key={section.id}>
                     {section.wallPanels.map((panel, i) => (
                         <group key={`${section.id}-panel-${i}`}>
-                            <Wall {...panel} />
+                            <Wall {...panel} isMobile={isMobile} />
                         </group>
                     ))}
 
                     {section.lights.map((light, i) => (
-                        <WallLight key={`${section.id}-light-${i}`} {...light} />
+                        <WallLight key={`${section.id}-light-${i}`} {...light} isMobile={isMobile} />
                     ))}
                 </group>
             ))}
@@ -266,7 +298,7 @@ const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Fun
                         key={i}
                     >
                         {/* Left side stand */}
-                        <mesh position={[-xOffset, standHeight / 2, zPos]}>
+                        <mesh position={[-xOffset, standHeight / 2, zPos]} castShadow={!isMobile}>
                             <boxGeometry args={[standWidth, standHeight, standDepth]} />
                             <meshStandardMaterial color="#5C1010" metalness={0.3} roughness={0.7} />
                         </mesh>
@@ -283,7 +315,7 @@ const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Fun
                             />
                         </mesh>
 
-                        <UpwardLight position={[-xOffset, standHeight + 0.2, zPos]} />
+                        <UpwardLight position={[-xOffset, standHeight + 0.2, zPos]} isMobile={isMobile} />
 
                         {/* Left watch with click */}
                         <group
@@ -305,7 +337,7 @@ const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Fun
                         </group>
 
                         {/* Right side stand */}
-                        <mesh position={[xOffset, standHeight / 2, zPos]}>
+                        <mesh position={[xOffset, standHeight / 2, zPos]} castShadow={!isMobile}>
                             <boxGeometry args={[standWidth, standHeight, standDepth]} />
                             <meshStandardMaterial color="#5C1010" metalness={0.3} roughness={0.7} />
                         </mesh>
@@ -321,7 +353,7 @@ const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Fun
                             />
                         </mesh>
 
-                        <UpwardLight position={[xOffset, standHeight + 0.2, zPos]} />
+                        <UpwardLight position={[xOffset, standHeight + 0.2, zPos]} isMobile={isMobile} />
 
                         {/* Right watch with click */}
                         <group
@@ -349,10 +381,11 @@ const Room = ({ onDoorClick, onPictureClick }: RoomType & { onPictureClick?: Fun
     )
 }
 
-const SceneLogic = ({ inWatchRoom, inside, controlsRef }: {
+const SceneLogic = ({ inWatchRoom, inside, controlsRef, isMobile }: {
     inWatchRoom: boolean,
     inside: boolean,
     controlsRef: React.RefObject<OrbitControlsImpl | null>
+    isMobile: boolean
 }) => {
     const { camera } = useThree();
 
@@ -391,8 +424,24 @@ const SceneLogic = ({ inWatchRoom, inside, controlsRef }: {
     }
 
     if (inside) {
-        // Inside the gallery, use FPS controls
-        return <FPSControls lookEnabled={false} turnSpeed={0.03} />;
+        if (isMobile) {
+            // MOBILE: Use locked-down OrbitControls
+            return (
+                <OrbitControls
+                    ref={controlsRef}
+                    target={[0, 1.5, 0]}
+                    enablePan={false}     // Prevent strafing
+                    enableZoom={false}    // Prevent zooming
+                    minDistance={1}
+                    maxDistance={6}
+                    minPolarAngle={Math.PI / 3} // Lock vertical look
+                    maxPolarAngle={Math.PI / 1.8}
+                />
+            );
+        } else {
+            // DESKTOP: Use FPS controls
+            return <FPSControls lookEnabled={false} turnSpeed={0.03} />;
+        }
     }
 
     // Outside (default), use OrbitControls
@@ -405,8 +454,8 @@ const Experience = () => {
     const controlsRef = useRef<OrbitControlsImpl | null>(null)
     const doorRef = useRef<THREE.Mesh>(null)
     const [inWatchRoom, setInWatchRoom] = useState(false)
-    const [fpsEnabled, setFpsEnabled] = useState(true);
 
+    const isMobile = useIsMobile();
 
     const handleDoorClick = (event: ThreeEvent<MouseEvent>) => {
         // Stop Propagation to prevent OrbitControls
@@ -415,6 +464,11 @@ const Experience = () => {
         const door = event.object; // We get the group containing the door
         const camera = event.camera;
         const controls = controlsRef.current
+
+        const insidePos = { x: 0, y: 1.5, z: isMobile ? 5 : 3 };
+        const insideTarget = { x: 0, y: 1.5, z: -2 };
+        const outsidePos = { x: 0, y: 2, z: isMobile ? 24 : 18 };
+        const outsideTarget = { x: 0, y: 1.5, z: 0 };
 
         if (!inside) {
             // Animate Door Opening
@@ -425,18 +479,14 @@ const Experience = () => {
 
             // Animate Camera Moving Inside
             gsap.to(camera.position, {
-                x: 0,
-                y: 1.5,
-                z: 3,
+                ...insidePos,
                 duration: 2.0
             })
 
             // Animate Controls to Look Forward
             if (controls) {
                 gsap.to(controls.target, {
-                    x: 0,
-                    y: 1.5,
-                    z: -2,
+                    ...insidePos,
                     duration: 2.0
                 })
             }
@@ -450,17 +500,13 @@ const Experience = () => {
             });
 
             gsap.to(camera.position, {
-                x: 0,
-                y: 2,
-                z: 18,
+                ...outsidePos,
                 duration: 2.0
             })
 
             if (controls) {
                 gsap.to(controls.target, {
-                    x: 0,
-                    y: 1.5,
-                    z: 0,
+                    ...outsidePos,
                     duration: 2.0
                 })
             }
@@ -477,10 +523,12 @@ const Experience = () => {
         // Zoom-in animation (Restored to original)
         const controls = controlsRef.current;
 
+        const zoomOffset = isMobile ? 2.5 : 1.8;
+
         gsap.to(camera.position, {
             x: worldPos.x,
             y: worldPos.y,
-            z: worldPos.z + 1.8, // <-- This is the zoom-in
+            z: worldPos.z + zoomOffset, // <-- This is the zoom-in
             duration: 1.5,
             ease: "power2.inOut",
             onComplete: () => {
@@ -511,11 +559,12 @@ const Experience = () => {
 
         if (!camera) return;
 
+        const insidePos = { x: 0, y: 1.5, z: isMobile ? 5 : 3 };
+        const insideTarget = { x: 0, y: 1.5, z: -2 };
+
         // Animate camera position back to INSIDE the gallery
         gsap.to(camera.position, {
-            x: 0,
-            y: 1.5, // <-- Match 'inside' y
-            z: 3,   // <-- Match 'inside' z
+            ...insidePos,
             duration: 2,
             ease: "power2.inOut",
             onComplete: () => {
@@ -529,9 +578,7 @@ const Experience = () => {
         // Reset control target to look forward from INSIDE
         if (controls) {
             gsap.to(controls.target, {
-                x: 0,
-                y: 1.5, // <-- Match 'inside' target y
-                z: -2,  // <-- Match 'inside' target z
+                ...insideTarget,
                 duration: 2,
                 ease: "power2.inOut",
                 onUpdate: () => controls.update(),
@@ -544,7 +591,7 @@ const Experience = () => {
         <Canvas camera={{ position: [0, 2, 18], fov: 75 }}>
             <>
                 <ambientLight intensity={1.5} />
-                <directionalLight position={[10, 10, 5]} intensity={1} />
+                <directionalLight position={[10, 10, 5]} intensity={1} castShadow={!isMobile} />
 
                 {inWatchRoom && selectedWatch ? (
                     <WatchRoom
@@ -552,7 +599,7 @@ const Experience = () => {
                         onBack={handleBackToGallery}
                     />
                 ) : (
-                    <Room onDoorClick={handleDoorClick} onPictureClick={handlePictureClick} />
+                    <Room onDoorClick={handleDoorClick} onPictureClick={handlePictureClick} isMobile={isMobile} />
                 )}
 
 
@@ -560,6 +607,7 @@ const Experience = () => {
                     inWatchRoom={inWatchRoom}
                     inside={inside}
                     controlsRef={controlsRef}
+                    isMobile={isMobile}
                 />
             </>
         </Canvas>
