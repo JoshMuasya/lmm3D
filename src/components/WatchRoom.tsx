@@ -89,9 +89,6 @@ const DesktopFPSControls = ({ roomWidth, roomDepth, roomHeight }: {
 const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
     const lightRef = useRef<THREE.PointLight>(null);
     const { camera } = useThree();
-    const velocity = useRef(new THREE.Vector3());
-    const direction = useRef(new THREE.Vector3());
-    const keys = useRef<Record<string, boolean>>({});
 
     const [tooltip, setTooltip] = useState({
         visible: false,
@@ -107,7 +104,16 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
     const roomHeight = 10;
 
     // Watch model
+    const modelScale = isMobile ? 0.6 : 1.0;
+
     const Model = watch.Model;
+
+    useEffect(() => {
+        if (isMobile) {
+            camera.position.set(0, 2.5, 6);
+            camera.lookAt(0, 2.2, 0);
+        }
+    }, [isMobile, camera]);
 
     // 🌟 Light pulse
     useEffect(() => {
@@ -161,7 +167,7 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
                         font="/fonts/Montserrat_Bold.json"
                         size={0.4}
                         height={0.1}
-                        bevelEnabled
+                        bevelEnabled={!isMobile}
                         bevelThickness={0.02}
                         bevelSize={0.01}
                         bevelSegments={4}
@@ -212,7 +218,7 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
                 {/* Watch above stand */}
                 <group
                     position={[0, 2.2, 0]}
-                    scale={1.0}
+                    scale={modelScale}
                     onClick={(e) => {
                         e.stopPropagation();
 
@@ -262,6 +268,8 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
                     maxDistance={roomDepth / 2 - 2} // Max zoom (stay in room)
                     minPolarAngle={Math.PI / 4}     // Look down limit
                     maxPolarAngle={Math.PI / 1.5}   // Look up limit
+                    rotateSpeed={2.5}
+                    zoomSpeed={1.8}
                 />
             ) : (
                 <DesktopFPSControls
