@@ -159,5 +159,5 @@ export interface WatchDisplayProps {
 
 export interface WatchRoomProps {
     watch: WatchData;
-    onBack: (event: ThreeEvent<MouseEvent>) => void;
+    onBack: () => void;
 }

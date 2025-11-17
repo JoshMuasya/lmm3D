@@ -7,6 +7,7 @@ import * as THREE from "three";
 import gsap from "gsap";
 import { WallType, WatchRoomProps } from "@/lib/types/types";
 
+// ✅ Hook cleaned of unused variables
 const useIsMobile = (breakpoint = 768) => {
     const [isMobile, setIsMobile] = useState(false);
 
@@ -86,9 +87,21 @@ const DesktopFPSControls = ({ roomWidth, roomDepth, roomHeight }: {
     return null; // This component is a controller, it doesn't render anything
 };
 
+// ✅ Wall component defined OUTSIDE WatchRoom for performance
+const Wall = ({ position, args, color, isMobile }: WallType & { isMobile: boolean }) => (
+    <mesh position={position} receiveShadow={!isMobile} castShadow={!isMobile}>
+        <boxGeometry args={args} />
+        <meshStandardMaterial color={color} side={THREE.DoubleSide} />
+    </mesh>
+);
+
+
 const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
     const lightRef = useRef<THREE.PointLight>(null);
     const { camera } = useThree();
+
+    // ❌ Removed tapTarget state and useFrame lerp to fix mobile control conflict
+    // const [tapTarget, setTapTarget] = useState<THREE.Vector3 | null>(null);
 
     const [tooltip, setTooltip] = useState({
         visible: false,
@@ -110,8 +123,8 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
 
     useEffect(() => {
         if (isMobile) {
-            camera.position.set(0, 2.5, 6);
-            camera.lookAt(0, 2.2, 0);
+            camera.position.set(0, 3.2, 9);
+            camera.rotation.set(-0.25, 0, 0);
         }
     }, [isMobile, camera]);
 
@@ -128,15 +141,10 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
         }
     }, []);
 
-    // 🧱 Wall helper
-    const Wall = ({ position, args, color }: WallType & { isMobile: boolean }) => (
-        <mesh position={position} receiveShadow={!isMobile} castShadow={!isMobile}>
-            <boxGeometry args={args} />
-            <meshStandardMaterial color={color} side={THREE.DoubleSide} />
-        </mesh>
-    );
+    // ❌ Removed handleTapMove function
 
     return (
+        // ❌ Removed onClick={handleTapMove} from main group
         <group>
             {/* 💡 Lighting */}
             <ambientLight intensity={1.3} color="#ffffff" />
@@ -217,10 +225,10 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
             <group position={[0, 0, 0]}>
                 {/* Watch above stand */}
                 <group
-                    position={[0, 2.2, 0]}
-                    scale={modelScale}
+                    position={isMobile ? [1.2, 2.0, -0.5] : [0, 2.2, 0]}
+                    scale={isMobile ? 0.5 : 1}
                     onClick={(e) => {
-                        e.stopPropagation();
+                        e.stopPropagation(); // ✅ Good! Prevents any parent clicks
 
                         setTooltip((prev) => {
                             // If already visible, hide it; otherwise show it
@@ -260,17 +268,49 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
                 </Html>
             )}
 
+            {isMobile && (
+                <Html position={[0, 5, 8]} zIndexRange={[100, 0]}>
+                    <button
+                        // ✅ This new function is the correct type
+                        onClick={(e) => {
+                            // Prevent click from "leaking" to the 3D canvas
+                            e.stopPropagation();
+
+                            // Call your original function
+                            onBack();
+                        }}
+                        style={{
+                            position: "fixed",
+                            top: "16px",
+                            left: "16px",
+                            padding: "10px 16px",
+                            background: "rgba(0,0,0,0.6)",
+                            color: "white",
+                            borderRadius: "8px",
+                            fontSize: "16px",
+                            backdropFilter: "blur(6px)",
+                        }}
+                    >
+                        Back
+                    </button>
+                </Html>
+            )}
+
+
             {isMobile ? (
                 <OrbitControls
-                    target={[0, 2.2, 0]} // Target the watch
-                    enablePan={false}      // Don't let user move camera target
-                    minDistance={2}        // Min zoom
-                    maxDistance={roomDepth / 2 - 2} // Max zoom (stay in room)
-                    minPolarAngle={Math.PI / 4}     // Look down limit
-                    maxPolarAngle={Math.PI / 1.5}   // Look up limit
-                    rotateSpeed={2.5}
-                    zoomSpeed={1.8}
+                    enablePan={true}
+                    enableRotate={true}
+                    enableZoom={false}
+                    panSpeed={1.5}
+                    rotateSpeed={2.0}
+                    maxPolarAngle={Math.PI * 0.9}
+                    minPolarAngle={Math.PI * 0.15}
+                    minDistance={3}
+                    maxDistance={30}
+                    target={[0, 2.2, 0]}
                 />
+
             ) : (
                 <DesktopFPSControls
                     roomWidth={roomWidth}
