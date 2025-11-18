@@ -1,6 +1,6 @@
 "use client"
 
-import { DoorType, RoomType, WallLightType, WallType, WatchData, WatchDisplayProps, WatchModelType } from '@/lib/types/types'
+import { RoomType, WallLightType, WallType, WatchData, WatchDisplayProps } from '@/lib/types/types'
 import * as THREE from "three";
 import React, { useEffect, useRef, useState } from 'react'
 import gsap from 'gsap';
@@ -128,33 +128,6 @@ const WatchDisplay: React.FC<WatchDisplayProps> = ({
         </group>
     );
 };
-
-
-
-const Door = ({ onClick }: DoorType) => {
-    const doorRef = useRef(null)
-
-    return (
-        <mesh
-            ref={doorRef}
-            position={[0, 1, 5.06]} // Front wall Opening 
-            onClick={onClick}
-            onPointerEnter={() => document.body.style.cursor = "pointer"}
-            onPointerLeave={() => document.body.style.cursor = "auto"}
-        >
-            {/* The Door */}
-            <boxGeometry args={[1.2, 2, 0.1]} />
-            <meshStandardMaterial color="#8B4513" />
-
-            {/* Door Knob */}
-            <mesh position={[0.45, 0, 0.06]}>
-                <sphereGeometry args={[0.05, 16, 16]} />
-                <meshStandardMaterial color="gold" />
-            </mesh>
-
-        </mesh>
-    )
-}
 
 // eslint-disable-next-line @typescript-eslint/no-unsafe-function-type
 const Room = ({ onDoorClick, onPictureClick, isMobile }: RoomType & { onPictureClick?: Function, isMobile: boolean }) => {
@@ -470,7 +443,6 @@ const Experience = () => {
     const [inside, setInside] = useState(false)
     const [selectedWatch, setSelectedWatch] = useState<WatchData | null>(null)
     const controlsRef = useRef<OrbitControlsImpl | null>(null)
-    const doorRef = useRef<THREE.Mesh>(null)
     const [inWatchRoom, setInWatchRoom] = useState(false)
 
     const isMobile = useIsMobile();
@@ -486,9 +458,7 @@ const Experience = () => {
         const controls = controlsRef.current
 
         const insidePos = { x: 0, y: 1.5, z: isMobile ? 5 : 3 };
-        const insideTarget = { x: 0, y: 1.5, z: -2 };
         const outsidePos = { x: 0, y: 2, z: isMobile ? 24 : 18 };
-        const outsideTarget = { x: 0, y: 1.5, z: 0 };
 
         if (!inside) {
             // Animate Door Opening

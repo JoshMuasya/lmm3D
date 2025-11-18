@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { Html, useTexture, Text3D, Center, OrbitControls } from "@react-three/drei";
-import { useThree, useFrame, ThreeEvent } from "@react-three/fiber";
+import { Html, Text3D, Center } from "@react-three/drei";
 import * as THREE from "three";
 import gsap from "gsap";
 import { WallType, WatchRoomProps } from "@/lib/types/types";
@@ -26,67 +25,6 @@ const useIsMobile = (breakpoint = 768) => {
     return isMobile;
 };
 
-const DesktopFPSControls = ({ roomWidth, roomDepth, roomHeight }: {
-    roomWidth: number,
-    roomDepth: number,
-    roomHeight: number
-}) => {
-    const { camera } = useThree();
-    const keys = useRef<Record<string, boolean>>({});
-
-    // Keyboard movement controls
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => (keys.current[e.code] = true);
-        const handleKeyUp = (e: KeyboardEvent) => (keys.current[e.code] = false);
-        window.addEventListener("keydown", handleKeyDown);
-        window.addEventListener("keyup", handleKeyUp);
-        return () => {
-            window.removeEventListener("keydown", handleKeyDown);
-            window.removeEventListener("keyup", handleKeyUp);
-        };
-    }, []);
-
-    // Movement logic per frame
-    useFrame(() => {
-        const moveSpeed = 0.1;
-        const turnSpeed = 0.03;
-        const direction = new THREE.Vector3();
-
-        // WSAD movement
-        if (keys.current["KeyW"]) direction.z -= 1;
-        if (keys.current["KeyS"]) direction.z += 1;
-        if (keys.current["KeyA"]) direction.x -= 1;
-        if (keys.current["KeyD"]) direction.x += 1;
-
-        // QE rotation
-        if (keys.current["KeyQ"]) camera.rotation.y += turnSpeed;
-        if (keys.current["KeyE"]) camera.rotation.y -= turnSpeed;
-
-        // Apply movement relative to camera direction
-        if (direction.lengthSq() > 0) {
-            direction.normalize();
-            const move = new THREE.Vector3(direction.x, 0, direction.z)
-                .applyEuler(new THREE.Euler(0, camera.rotation.y, 0))
-                .multiplyScalar(moveSpeed);
-            camera.position.add(move);
-        }
-
-        // Keep camera within bounds
-        const minX = -roomWidth / 2 + 1.5;
-        const maxX = roomWidth / 2 - 1.5;
-        const minY = 1.2; // Keep a consistent eye-level
-        const maxY = 1.8; // Don't let user fly
-        const minZ = -roomDepth / 2 + 1.5;
-        const maxZ = roomDepth / 2 - 1.5;
-
-        camera.position.x = Math.max(minX, Math.min(maxX, camera.position.x));
-        camera.position.y = Math.max(minY, Math.min(maxY, camera.position.y));
-        camera.position.z = Math.max(minZ, Math.min(maxZ, camera.position.z));
-    });
-
-    return null; // This component is a controller, it doesn't render anything
-};
-
 // ✅ Wall component defined OUTSIDE WatchRoom for performance
 const Wall = ({ position, args, color, isMobile }: WallType & { isMobile: boolean }) => (
     <mesh position={position} receiveShadow={!isMobile} castShadow={!isMobile}>
@@ -98,10 +36,6 @@ const Wall = ({ position, args, color, isMobile }: WallType & { isMobile: boolea
 
 const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
     const lightRef = useRef<THREE.PointLight>(null);
-    const { camera } = useThree();
-
-    // ❌ Removed tapTarget state and useFrame lerp to fix mobile control conflict
-    // const [tapTarget, setTapTarget] = useState<THREE.Vector3 | null>(null);
 
     const [tooltip, setTooltip] = useState({
         visible: false,
@@ -116,20 +50,7 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
     const roomDepth = 18;
     const roomHeight = 10;
 
-    // Watch model
-    const modelScale = isMobile ? 0.6 : 1.0;
-
     const Model = watch.Model;
-
-    // useEffect(() => {
-    //     const isMobile = window.innerWidth < 768;
-
-    //     if (isMobile) {
-    //         camera.position.set(0, 1.4, 4);  // ← Mobile view (watch smaller + centered)
-    //     } else {
-    //         camera.position.set(0, 1.6, 3);  // ← Desktop view
-    //     }
-    // }, [camera]);
 
     // 🌟 Light pulse
     useEffect(() => {
