@@ -121,12 +121,15 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
 
     const Model = watch.Model;
 
-    useEffect(() => {
-        if (isMobile) {
-            camera.position.set(0, 3.2, 9);
-            camera.rotation.set(-0.25, 0, 0);
-        }
-    }, [isMobile, camera]);
+    // useEffect(() => {
+    //     const isMobile = window.innerWidth < 768;
+
+    //     if (isMobile) {
+    //         camera.position.set(0, 1.4, 4);  // ← Mobile view (watch smaller + centered)
+    //     } else {
+    //         camera.position.set(0, 1.6, 3);  // ← Desktop view
+    //     }
+    // }, [camera]);
 
     // 🌟 Light pulse
     useEffect(() => {
@@ -261,62 +264,12 @@ const WatchRoom: React.FC<WatchRoomProps> = ({ watch, onBack }) => {
                             borderRadius: "4px",
                             fontSize: "14px",
                             whiteSpace: "nowrap",
+                            pointerEvents: "none"
                         }}
                     >
                         {tooltip.text}
                     </div>
                 </Html>
-            )}
-
-            {isMobile && (
-                <Html position={[0, 5, 8]} zIndexRange={[100, 0]}>
-                    <button
-                        // ✅ This new function is the correct type
-                        onClick={(e) => {
-                            // Prevent click from "leaking" to the 3D canvas
-                            e.stopPropagation();
-
-                            // Call your original function
-                            onBack();
-                        }}
-                        style={{
-                            position: "fixed",
-                            top: "16px",
-                            left: "16px",
-                            padding: "10px 16px",
-                            background: "rgba(0,0,0,0.6)",
-                            color: "white",
-                            borderRadius: "8px",
-                            fontSize: "16px",
-                            backdropFilter: "blur(6px)",
-                        }}
-                    >
-                        Back
-                    </button>
-                </Html>
-            )}
-
-
-            {isMobile ? (
-                <OrbitControls
-                    enablePan={true}
-                    enableRotate={true}
-                    enableZoom={false}
-                    panSpeed={1.5}
-                    rotateSpeed={2.0}
-                    maxPolarAngle={Math.PI * 0.9}
-                    minPolarAngle={Math.PI * 0.15}
-                    minDistance={3}
-                    maxDistance={30}
-                    target={[0, 2.2, 0]}
-                />
-
-            ) : (
-                <DesktopFPSControls
-                    roomWidth={roomWidth}
-                    roomDepth={roomDepth}
-                    roomHeight={roomHeight}
-                />
             )}
         </group>
     );

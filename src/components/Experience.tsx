@@ -388,20 +388,23 @@ const SceneLogic = ({ inWatchRoom, inside, controlsRef, isMobile }: {
     isMobile: boolean
 }) => {
     const { camera } = useThree();
+    const firstWatchRoomEntry = useRef(true);
 
     // This effect runs when we TRANSITION into the WatchRoom
     useEffect(() => {
         if (inWatchRoom && controlsRef.current) {
-            // The zoom-in animation from handlePictureClick has just finished.
-            // NOW, we animate the camera to the WatchRoom's starting position.
+            if (firstWatchRoomEntry.current) {
+                firstWatchRoomEntry.current = false;
+                return;
+            }
 
-            // Camera Position: "at the opposite wall" (back wall, z = -8)
-            // Camera Target: "to face the Door" (looking at center, z = 0)
+            // Mobile/Desktop camera positions for WatchRoom
+            const targetCameraPos = isMobile
+                ? { x: 0, y: 1.4, z: 4 }  // Mobile
+                : { x: 0, y: 1.6, z: 3 }; // Desktop
 
             gsap.to(camera.position, {
-                x: 0,
-                y: 1.5,
-                z: -8, // <-- At the "back wall"
+                ...targetCameraPos,
                 duration: 1.5,
                 ease: "power2.inOut",
             });
@@ -409,18 +412,33 @@ const SceneLogic = ({ inWatchRoom, inside, controlsRef, isMobile }: {
             gsap.to(controlsRef.current.target, {
                 x: 0,
                 y: 1.5,
-                z: 0, // <-- Looking at the "center" (towards the door)
+                z: 0,
                 duration: 1.5,
                 ease: "power2.inOut",
                 onUpdate: () => controlsRef.current?.update(),
             });
         }
-    }, [inWatchRoom, camera, controlsRef]);
+    }, [inWatchRoom, camera, controlsRef, isMobile]);
+
 
     // This renders the correct controls for the current state
     if (inWatchRoom) {
         // When in WatchRoom, we want OrbitControls to look around
-        return <OrbitControls ref={controlsRef} target={[0, 1.5, 0]} />;
+        return (
+            <OrbitControls
+                ref={controlsRef} // ✅ Keep the ref for animations!
+                enablePan={true}
+                enableRotate={true}
+                enableZoom={true}
+                panSpeed={1.5}
+                rotateSpeed={2.0}
+                maxPolarAngle={Math.PI * 0.9}
+                minPolarAngle={Math.PI * 0.15}
+                minDistance={3}
+                maxDistance={30}
+                target={[0, 2.2, 0]} // Your desired target from the snippet
+            />
+        )
     }
 
     if (inside) {
@@ -456,6 +474,8 @@ const Experience = () => {
     const [inWatchRoom, setInWatchRoom] = useState(false)
 
     const isMobile = useIsMobile();
+
+    const cameraPosition: [x: number, y: number, z: number] = isMobile ? [0, 3, 22] : [0, 2, 18];
 
     const handleDoorClick = (event: ThreeEvent<MouseEvent>) => {
         // Stop Propagation to prevent OrbitControls
@@ -588,7 +608,7 @@ const Experience = () => {
 
 
     return (
-        <Canvas camera={{ position: [0, 2, 18], fov: 75 }}>
+        <Canvas camera={{ position: cameraPosition, fov: 75 }}>
             <>
                 <ambientLight intensity={1.5} />
                 <directionalLight position={[10, 10, 5]} intensity={1} castShadow={!isMobile} />
