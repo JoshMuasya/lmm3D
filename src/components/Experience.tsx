@@ -416,16 +416,18 @@ const SceneLogic = ({ inWatchRoom, inside, controlsRef, isMobile }: {
 
     if (inside) {
         if (isMobile) {
-            // MOBILE: Use locked-down OrbitControls
+            // MOBILE: Use locked-down OrbitControls but make rotate/pan explicit so you can tune later
             return (
                 <OrbitControls
+                    key={`orbit-inside-mobile-${String(inWatchRoom)}`} // forces remount on view toggle
                     ref={controlsRef}
                     target={[0, 1.5, 0]}
-                    enablePan={false}     // Prevent strafing
-                    enableZoom={false}    // Prevent zooming
+                    enablePan={true}        // allow panning if you want; set false to fully lock
+                    enableRotate={true}     // explicitly allow rotate
+                    enableZoom={true}       // allow pinch/zoom if you want
                     minDistance={1}
                     maxDistance={6}
-                    minPolarAngle={Math.PI / 3} // Lock vertical look
+                    minPolarAngle={Math.PI / 3}
                     maxPolarAngle={Math.PI / 1.8}
                 />
             );
@@ -434,6 +436,7 @@ const SceneLogic = ({ inWatchRoom, inside, controlsRef, isMobile }: {
             return <FPSControls lookEnabled={false} turnSpeed={0.03} />;
         }
     }
+
 
     // Outside (default), use OrbitControls
     return <OrbitControls ref={controlsRef} target={[0, 1.5, 0]} />;
@@ -545,12 +548,13 @@ const Experience = () => {
         const controls = controlsRef.current;
         const camera = event.camera;
 
-        console.log("Returning to gallery...", camera);
-
         if (!camera) return;
 
         const insidePos = { x: 0, y: 1.5, z: isMobile ? 5 : 3 };
         const insideTarget = { x: 0, y: 1.5, z: -2 };
+
+        // Disable controls while animating so user input doesn't fight gsap
+        if (controls) controls.enabled = false;
 
         // Animate camera position back to INSIDE the gallery
         gsap.to(camera.position, {
@@ -561,7 +565,16 @@ const Experience = () => {
                 // Switch view back
                 setInWatchRoom(false);
                 setSelectedWatch(null);
-                // setFpsEnabled(true); // SceneLogic now handles this
+
+                // Re-enable and ensure the controls are in a consistent state
+                if (controls) {
+                    controls.enabled = true;
+                    // restore any distances you expect for the gallery
+                    controls.minDistance = isMobile ? 1 : 3;
+                    controls.maxDistance = 30;
+                    // Ensure control internal state is synced with camera/target
+                    controls.update();
+                }
             },
         });
 
@@ -575,6 +588,7 @@ const Experience = () => {
             });
         }
     };
+
 
 
     return (
